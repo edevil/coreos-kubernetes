@@ -1,5 +1,11 @@
 # Kubelet Wrapper Script
 
+<div class="k8s-on-tectonic">
+<p class="k8s-on-tectonic-description">This repo is not in alignment with current versions of Kubernetes, and will not be active in the future. The CoreOS Kubernetes documentation has been moved to the <a href="https://github.com/coreos/tectonic-docs/tree/master/Documentation">tectonic-docs repo</a>, where it will be published and updated.</p>
+
+<p class="k8s-on-tectonic-description">For tested, maintained, and production-ready Kubernetes instructions, see our <a href="https://coreos.com/tectonic/docs/latest/install/aws/index.html">Tectonic Installer documentation</a>. The Tectonic Installer provides a Terraform-based Kubernetes installation. It is open source, uses upstream Kubernetes and can be easily customized.</p>
+</div>
+
 The kubelet is the orchestrator of containers on each host in the Kubernetes cluster — it starts and stops containers, configures pod mounts, and other low-level, essential tasks. In order to accomplish these tasks, the kubelet requires special permissions on the host.
 
 CoreOS recommends running the kubelet using the rkt container engine, because it has the correct set of features to enable these special permissions, while taking advantage of all that container packaging has to offer: image discovery, signing/verification, and simplified management.
@@ -19,17 +25,20 @@ An example systemd kubelet.service file which takes advantage of the kubelet-wra
 
 ```ini
 [Service]
-Environment=KUBELET_VERSION=v1.2.4_coreos.1
+Environment=KUBELET_IMAGE_TAG=v1.5.4_coreos.0
+Environment="RKT_RUN_ARGS=--uuid-file-save=/var/run/kubelet-pod.uuid"
+ExecStartPre=-/usr/bin/rkt rm --uuid-file=/var/run/kubelet-pod.uuid
 ExecStart=/usr/lib/coreos/kubelet-wrapper \
   --api-servers=http://127.0.0.1:8080 \
-  --config=/etc/kubernetes/manifests
+  --pod-manifest-path=/etc/kubernetes/manifests
+ExecStop=-/usr/bin/rkt stop --uuid-file=/var/run/kubelet-pod.uuid
 ```
 
-In the example above we set the `KUBELET_VERSION` and the kubelet-wrapper script takes care of running the correct container image with our desired API server address and manifest location.
+In the example above we set the `KUBELET_IMAGE_TAG` and the kubelet-wrapper script takes care of running the correct container image with our desired API server address and manifest location.
 
 ## Customizing rkt Options
 
-Passing customized options or flags to rkt can be accomplished with the RKT_OPTS environment variable. Referencing it in a unit file is straightforward.
+Passing customized options or flags to rkt can be accomplished with the RKT_RUN_ARGS environment variable. Referencing it in a unit file is straightforward.
 
 ### Use the host's DNS configuration
 
@@ -37,12 +46,16 @@ Mount the host's `/etc/resolv.conf` file directly into the container in order to
 
 ```ini
 [Service]
-Environment="RKT_OPTS=--volume=resolv,kind=host,source=/etc/resolv.conf --mount volume=resolv,target=/etc/resolv.conf"
-Environment=KUBELET_VERSION=v1.2.4_coreos.1
+Environment=KUBELET_IMAGE_TAG=v1.5.4_coreos.0
+Environment="RKT_RUN_ARGS=--volume=resolv,kind=host,source=/etc/resolv.conf \
+  --mount volume=resolv,target=/etc/resolv.conf \
+  --uuid-file-save=/var/run/kubelet-pod.uuid"
+ExecStartPre=-/usr/bin/rkt rm --uuid-file=/var/run/kubelet-pod.uuid
 ExecStart=/usr/lib/coreos/kubelet-wrapper \
   --api-servers=http://127.0.0.1:8080 \
-  --config=/etc/kubernetes/manifests
+  --pod-manifest-path=/etc/kubernetes/manifests
   ...other flags...
+ExecStop=-/usr/bin/rkt stop --uuid-file=/var/run/kubelet-pod.uuid
 ```
 
 ### Allow pods to use iSCSI mounts
@@ -51,28 +64,45 @@ Pods running in your cluster can reference remote storage volumes located on an 
 
 ```ini
 [Service]
-Environment="RKT_OPTS=--volume iscsiadm,kind=host,source=/usr/sbin/iscsiadm --mount volume=iscsiadm,target=/usr/sbin/iscsiadm"
-Environment=KUBELET_VERSION=v1.2.4_coreos.1
+Environment=KUBELET_IMAGE_TAG=v1.5.4_coreos.0
+Environment="RKT_RUN_ARGS=--volume iscsiadm,kind=host,source=/usr/sbin/iscsiadm \
+  --mount volume=iscsiadm,target=/usr/sbin/iscsiadm \
+  --uuid-file-save=/var/run/kubelet-pod.uuid"
+ExecStartPre=-/usr/bin/rkt rm --uuid-file=/var/run/kubelet-pod.uuid
 ExecStart=/usr/lib/coreos/kubelet-wrapper \
   --api-servers=http://127.0.0.1:8080 \
-  --config=/etc/kubernetes/manifests
+  --pod-manifest-path=/etc/kubernetes/manifests
   ...other flags...
+ExecStop=-/usr/bin/rkt stop --uuid-file=/var/run/kubelet-pod.uuid
 ```
 
-### Use the cluster logging add-on
+### Allow pods to use rbd volumes
 
-Export the logs collected by the kubelet via a volume mount, so that [other logging applications][addon-logging] can consume it. In addition to setting `RKT_OPTS`, an `ExecStartPre` is included to create the log directory.
+Pods using the [rbd volume plugin][rbd-example] to consume data from ceph must ensure that the kubelet has access to modprobe. Add the following options to the `RKT_RUN_ARGS` env before launching the kubelet via kubelet-wrapper:
 
 ```ini
 [Service]
-Environment="RKT_OPTS=--volume var-log,kind=host,source=/var/log --mount volume=var-log,target=/var/log"
-Environment=KUBELET_VERSION=v1.2.4_coreos.1
-ExecStartPre=/usr/bin/mkdir -p /var/log/containers
-ExecStart=/usr/lib/coreos/kubelet-wrapper \
-  --api-servers=http://127.0.0.1:8080 \
-  --config=/etc/kubernetes/manifests
-  ...other flags...
+Environment=KUBELET_IMAGE_TAG=v1.5.4_coreos.0
+Environment="RKT_RUN_ARGS=--volume modprobe,kind=host,source=/usr/sbin/modprobe \
+  --mount volume=modprobe,target=/usr/sbin/modprobe \
+  --volume lib-modules,kind=host,source=/lib/modules \
+  --mount volume=lib-modules,target=/lib/modules \
+  --uuid-file-save=/var/run/kubelet-pod.uuid"
+...
 ```
+
+Note that the kubelet also requires access to the userspace `rbd` tool that is included only in hyperkube images tagged `v1.3.6_coreos.0` or later.
+
+### Securing the Kubelet API
+
+By default, the Kubelet allows unauthenticated access to its [API ports][kubernetes-ports].
+
+In order to secure your Kubernetes cluster, you **must** either:
+
+1. Avoid exposing the Kubelet API to the internet, and trust all software with access to it (including every pod run on your cluster), or
+2. Turn on [Kubelet authentication][kubelet-authn-authz].
+
+The Kubernetes documentation on [Master -> Cluster communication][master-cluster-communication] provides more information and details solutions.
 
 ## Manual deployment
 
@@ -87,12 +117,17 @@ For example:
 
 ```ini
 [Service]
-Environment=KUBELET_VERSION=v1.2.4_coreos.1
+Environment=KUBELET_IMAGE_TAG=v1.5.4_coreos.0
+...
 ExecStart=/opt/bin/kubelet-wrapper \
   --api-servers=http://127.0.0.1:8080 \
-  --config=/etc/kubernetes/manifests
+  --pod-manifest-path=/etc/kubernetes/manifests
+...
 ```
 
 [#2141]: https://github.com/coreos/rkt/issues/2141
 [kubelet-wrapper]: https://github.com/coreos/coreos-overlay/blob/master/app-admin/kubelet-wrapper/files/kubelet-wrapper
-[addon-logging]: https://github.com/kubernetes/kubernetes/tree/release-1.2/cluster/addons/fluentd-elasticsearch
+[rbd-example]: https://github.com/kubernetes/kubernetes/tree/master/examples/volumes/rbd
+[kubernetes-ports]: https://github.com/kubernetes/kubernetes/tree/master/examples/volumes/rbd
+[kubelet-authn-authz]: https://kubernetes.io/docs/admin/kubelet-authentication-authorization/
+[master-cluster-communication]: https://kubernetes.io/docs/admin/master-node-communication/#master---cluster

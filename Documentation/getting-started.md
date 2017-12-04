@@ -1,16 +1,24 @@
 # CoreOS &#43; Kubernetes Step By Step
 
-This guide will walk you through a deployment of a single-master/multi-worker Kubernetes cluster on CoreOS. We're going to:
+<div class="k8s-on-tectonic">
+<p class="k8s-on-tectonic-description">This repo is not in alignment with current versions of Kubernetes, and will not be active in the future. The CoreOS Kubernetes documentation has been moved to the <a href="https://github.com/coreos/tectonic-docs/tree/master/Documentation">tectonic-docs repo</a>, where it will be published and updated.</p>
 
-- configure an etcd cluster for Kubernetes to use
-- generate the required certificates for communication between Kubernetes components
-- deploy a master node
-- deploy worker nodes
-- configure `kubectl` to work with our cluster
-- deploy the DNS add-on
-- deploy the network policy add-on
+<p class="k8s-on-tectonic-description">For tested, maintained, and production-ready Kubernetes instructions, see our <a href="https://coreos.com/tectonic/docs/latest/install/aws/index.html">Tectonic Installer documentation</a>. The Tectonic Installer provides a Terraform-based Kubernetes installation. It is open source, uses upstream Kubernetes and can be easily customized.</p>
+</div>
 
-Working through this guide may take you a few hours, but it will give you good understanding of the moving pieces of your cluster and set you up for success in the long run. Let's get started.
+This guide walks through deploying a Kubernetes cluster of CoreOS nodes, with a single controller and multiple workers. This guide enumerates the multiple steps and stages of a Kubernetes deployment. To quickly deploy a Kubernetes cluster without engaging component-level details, check out the [free tier of the CoreOS Tectonic][tectonic-free] Kubernetes distribution, or the [open-source Tectonic Installer][tectonic-installer] that drives Tectonic's automation of cluster deployments.
+
+The primary goals of this guide are:
+
+- Configure an etcd cluster for Kubernetes to use
+- Generate the required certificates for communication between Kubernetes components
+- Deploy a master node
+- Deploy worker nodes
+- Configure `kubectl` to work with our cluster
+- Deploy the DNS add-on
+- Deploy the network policy add-on
+
+Working through this guide may take you a few hours, but it will give you good understanding of the moving pieces of your cluster and set you up for success in the long run. For a shortcut, you can utilize [these generic user-data scripts][generic-userdata]. Let's get started.
 
 ## Deployment Options
 
@@ -95,7 +103,7 @@ Created symlink from /etc/systemd/system/multi-user.target.wants/etcd2.service t
 
 It is highly recommended that etcd is run as a dedicated cluster separately from Kubernetes components.
 
-Use the [official etcd clustering guide](https://coreos.com/etcd/docs/latest/clustering.html) to decide how best to deploy etcd into your environment.
+Use the [official etcd clustering guide](https://coreos.com/etcd/docs/latest/docker_guide.html) to decide how best to deploy etcd into your environment.
 
 ## Generate Kubernetes TLS Assets
 
@@ -140,3 +148,7 @@ admin-key.pem
   <p><strong>Did you generate all of the certificates?</strong> You will place these on disk next.</p>
   <a href="deploy-master.md" class="btn btn-primary btn-icon-right"  data-category="Docs Next" data-event="Kubernetes: Master">Yes, ready to deploy the master node</a>
 </div>
+
+[generic-userdata]: kubernetes-on-generic-platforms.md
+[tectonic-free]: https://coreos.com/tectonic/
+[tectonic-installer]: https://github.com/coreos/tectonic-installer

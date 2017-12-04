@@ -1,8 +1,9 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
+set -e
 
 # define location of openssl binary manually since running this
 # script under Vagrant fails on some systems without it
-OPENSSL=/usr/bin/openssl
+OPENSSL=$(which openssl)
 
 function usage {
     echo "USAGE: $0 <output-dir>"
@@ -28,7 +29,7 @@ if [ -f "$OUTFILE" ];then
 fi
 
 # establish cluster CA and self-sign a cert
-$OPENSSL genrsa -out "$OUTDIR/ca-key.pem" 2048
-$OPENSSL req -x509 -new -nodes -key "$OUTDIR/ca-key.pem" -days 10000 -out "$OUTFILE" -subj "/CN=kube-ca"
+openssl genrsa -out "$OUTDIR/ca-key.pem" 2048
+openssl req -x509 -new -nodes -key "$OUTDIR/ca-key.pem" -days 10000 -out "$OUTFILE" -subj "/CN=kube-ca"
 
 

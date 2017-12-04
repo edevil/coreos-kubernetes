@@ -1,8 +1,14 @@
 # Upgrading Kubernetes
 
-This document describes upgrading the Kubernetes components on a cluster's master and worker nodes. For general information on Kubernetes cluster management, upgrades (including more advanced topics such as major API version upgrades) see the [Kubernetes upstream documentation](http://kubernetes.io/docs/admin/cluster-management.html) and [version upgrade notes](https://github.com/kubernetes/kubernetes/blob/release-1.2/docs/design/versioning.md#upgrades)
+<div class="k8s-on-tectonic">
+<p class="k8s-on-tectonic-description">This repo is not in alignment with current versions of Kubernetes, and will not be active in the future. The CoreOS Kubernetes documentation has been moved to the <a href="https://github.com/coreos/tectonic-docs/tree/master/Documentation">tectonic-docs repo</a>, where it will be published and updated.</p>
 
-**NOTE:** The following upgrade documentation is for installations based on the CoreOS + Kubernetes step-by-step [installation guide](https://coreos.com/kubernetes/docs/latest/getting-started.html). Upgrade documentation for the AWS cloud-formation based installation is forthcoming.
+<p class="k8s-on-tectonic-description">For tested, maintained, and production-ready Kubernetes instructions, see our <a href="https://coreos.com/tectonic/docs/latest/install/aws/index.html">Tectonic Installer documentation</a>. The Tectonic Installer provides a Terraform-based Kubernetes installation. It is open source, uses upstream Kubernetes and can be easily customized.</p>
+</div>
+
+This document describes upgrading the Kubernetes components on a cluster's master and worker nodes. For general information on Kubernetes cluster management, upgrades (including more advanced topics such as major API version upgrades) see the [Kubernetes upstream documentation](https://kubernetes.io/docs/admin/cluster-management/) and [version upgrade notes](https://github.com/kubernetes/kubernetes/blob/release-1.4/docs/design/versioning.md#upgrades)
+
+**NOTE:** The following upgrade documentation is for installations based on the CoreOS + Kubernetes step-by-step [installation guide](https://coreos.com/kubernetes/docs/latest/getting-started.html).
 
 ## Upgrading the Kubelet
 
@@ -10,30 +16,23 @@ The Kubelet runs on both master and worker nodes, and is distributed as a hyperk
 
 To update the image version, modify the kubelet service file on each node (`/etc/systemd/system/kubelet.service`) to reference the new hyperkube image.
 
-For example, modifying the `KUBELET_VERSION` environment variable in the following service file would change the container image version used when launching the kubelet via the [kubelet-wrapper](kubelet-wrapper.md) script.
+For example, modifying the `KUBELET_IMAGE_TAG` environment variable in the following service file would change the container image version used when launching the kubelet via the [kubelet-wrapper](kubelet-wrapper.md) script.
 
 **/etc/systemd/system/kubelet.service**
 
 ```
-Environment=KUBELET_VERSION=v1.2.4_coreos.1
+Environment=KUBELET_IMAGE_TAG=v1.5.4_coreos.0
 ExecStart=/usr/lib/coreos/kubelet-wrapper \
   --api-servers=https://master [...]
 ```
 
 ## Upgrading Calico
 
-The Calico agent runs on both master and worker nodes, and is is distributed as a container image. It runs under rkt using systemd.
+The Calico agent runs on both master and worker nodes, and is distributed as a container image. It runs self hosted under Kubernetes.
 
-To update the image version, change the image tag in the service file (`/etc/systemd/system/calico-node.service`) to reference the new calico-node image.
+To upgrade Calico, follow the documentation [here](http://docs.projectcalico.org/v2.0/getting-started/kubernetes/upgrade)
 
-
-**/etc/systemd/system/calico-node.service**
-```
-ExecStart=/usr/bin/rkt run --inherit-env --stage1-from-dir=stage1-fly.aci \
---volume=modules,kind=host,source=/lib/modules,readOnly=false \
---mount=volume=modules,target=/lib/modules \
---trust-keys-from-https quay.io/calico/node:v0.19.0
-```
+**Note:** If you are running Calico as a systemd service, you will first need to change to a self-hosted install by following [this guide](https://coreos.com/kubernetes/docs/latest/deploy-master.html)
 
 ## Upgrading Master Nodes
 
@@ -43,7 +42,7 @@ Master nodes consist of the following Kubernetes components:
 * kube-apiserver
 * kube-controller-manager
 * kube-scheduler
-* policy-agent
+* policy-controller
 
 While upgrading the master components, user pods on worker nodes will continue to run normally.
 
@@ -54,6 +53,7 @@ The master node components (kube-controller-manager,kube-scheduler, kube-apiserv
 For example, to upgrade the kube-apiserver version you could update the pod image tag in `/etc/kubernetes/manifests/kube-apiserver.yaml`:
 
 From: `image: quay.io/coreos/hyperkube:v1.0.6_coreos.0`
+
 To: `image: quay.io/coreos/hyperkube:v1.0.7_coreos.0`
 
 In high-availability deployments, the control-plane components (apiserver, scheduler, and controller-manager) are deployed to all master nodes. Upgrades of these components will require them being updated on each master node.

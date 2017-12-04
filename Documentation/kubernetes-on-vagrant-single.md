@@ -1,5 +1,11 @@
 # Single-Node Kubernetes Installation with Vagrant &amp; CoreOS
 
+<div class="k8s-on-tectonic">
+<p class="k8s-on-tectonic-description">This repo is not in alignment with current versions of Kubernetes, and will not be active in the future. The CoreOS Kubernetes documentation has been moved to the <a href="https://github.com/coreos/tectonic-docs/tree/master/Documentation">tectonic-docs repo</a>, where it will be published and updated.</p>
+
+<p class="k8s-on-tectonic-description">For tested, maintained, and production-ready Kubernetes instructions, see our <a href="https://coreos.com/tectonic/docs/latest/install/aws/index.html">Tectonic Installer documentation</a>. The Tectonic Installer provides a Terraform-based Kubernetes installation. It is open source, uses upstream Kubernetes and can be easily customized.</p>
+</div>
+
 While Kubernetes is designed to run across large clusters, it can be useful to have Kubernetes available on a single machine.
 This guide walks a deployer through this process using Vagrant and CoreOS.
 After completing this guide, a deployer will be able to interact with the Kubernetes API from their workstation using the kubectl CLI tool.
@@ -19,13 +25,13 @@ Navigate to the [Vagrant downloads page][vagrant-downloads] and grab the appropr
 The linux `kubectl` binary can be fetched with a command like:
 
 ```sh
-$ curl -O https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kubectl
+$ curl -O https://storage.googleapis.com/kubernetes-release/release/v1.5.4/bin/linux/amd64/kubectl
 ```
 
 On an OS X workstation, replace `linux` in the URL above with `darwin`:
 
 ```sh
-$ curl -O https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/darwin/amd64/kubectl
+$ curl -O https://storage.googleapis.com/kubernetes-release/release/v1.5.4/bin/darwin/amd64/kubectl
 ```
 
 After downloading the binary, ensure it is executable and move it into your PATH:
@@ -43,6 +49,16 @@ The following commands will clone a repository that contains a "Vagrantfile", wh
 $ git clone https://github.com/coreos/coreos-kubernetes.git
 $ cd coreos-kubernetes/single-node/
 ```
+
+## Choose Container Runtime (optional)
+
+The runtime defaults to docker. If you wish to use rkt simply edit the user-data and change the line beginning with `export CONTAINER_RUNTIME` to:
+
+`export CONTAINER_RUNTIME=rkt`
+
+## Enable Network Policy (Optional)
+
+To enable network policy edit the user-data file and set `USE_CALICO=true`.
 
 ## Start the Machine
 
@@ -88,6 +104,6 @@ NAME          LABELS                               STATUS
 <div class="co-m-docs-next-step">
   <p><strong>Is kubectl working correctly?</strong></p>
   <p>Now that you've got a working Kubernetes cluster with a functional CLI tool, you are free to deploy Kubernetes-ready applications.
-Start with a <a href="https://github.com/kubernetes/kubernetes/blob/release-1.2/examples/guestbook/README.md" data-category="Docs Next" data-event="kubernetes.io: Guestbook">multi-tier web application</a> from the official Kubernetes documentation to visualize how the various Kubernetes components fit together.</p>
-  <a href="https://github.com/kubernetes/kubernetes/blob/release-1.2/examples/guestbook/README.md" class="btn btn-default btn-icon-right" data-category="Docs Next" data-event="kubernetes.io: Guestbook">View the Guestbook example app</a>
+Start with a <a href="https://github.com/kubernetes/kubernetes/blob/release-1.4/examples/guestbook/README.md" data-category="Docs Next" data-event="kubernetes.io: Guestbook">multi-tier web application</a> from the official Kubernetes documentation to visualize how the various Kubernetes components fit together.</p>
+  <a href="https://github.com/kubernetes/kubernetes/blob/release-1.4/examples/guestbook/README.md" class="btn btn-default btn-icon-right" data-category="Docs Next" data-event="kubernetes.io: Guestbook">View the Guestbook example app</a>
 </div>
